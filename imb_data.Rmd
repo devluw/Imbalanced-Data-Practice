@@ -1,0 +1,90 @@
+---
+title: "Imbalanced Data Set Practice"
+author: "Luca Wells"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Background
+
+This is a small project to gain experience in working with an imbalanced
+data set to prepare for a job application at a Pharmaceutical research company.
+
+# Building an Imbalanced Data Set
+
+```{r}
+# Seed should remain consistent throughout program for reproducibility
+set.seed(43110)
+# Number of observations in data set (could be patients etc)
+n <- 1000
+# Generate n numbers from standard normal distribution.
+# x1 and x2 act as predictor variables which have an impact on the outcome
+# of a side effect occurring.
+x1 <- rnorm(n)
+x2 <- rnorm(n)
+# Generate n random binary integers to simulate the outcome of a side effect
+# occurring (simply 'yes' or 'no') at a probability of 1 in 20 (5%).
+y <- rbinom(n, 1, prob = 0.05)
+# Load data into frame and generate table
+data <- data.frame(x1, x2, y)
+table(data$y)
+```
+
+# Training and Testing Sets
+
+```{r}
+set.seed(43110)
+# Classification and regression testing library will allow us
+# to split our data into two sets.
+library(caret)
+# Split data maintains proportion of each class in the target variable y.
+stratSplit <- createDataPartition(data$y, p=.7, list = FALSE)
+# Generate new data sets based on previous partition and load into tables.
+trainSet <- data[stratSplit, ]
+testSet <- data[-stratSplit, ]
+table(trainSet$y)
+table(testSet$y)
+```
+
+# Logistic Regression Model
+
+```{r}
+# Logistic model uses our predictor variables (x1 and x2) to
+# predict binary outcome y.
+model <- glm(y ~ x1 + x2, data = trainSet, family = binomial)
+summary(model)
+```
+
+# Evaluating Model with Confusion Matrix
+
+```{r}
+library(caret)
+# Generate predictions for every patient in the test set using
+# the logistic regression model.
+tsProbs <- predict(model, testSet, type = "response")
+# Reclassify predictions to true or false based on threshold.
+# We could increase recall by lowering the threshold to account
+# for the imbalance in our data set at the cost of accuracy.
+tsLabels <- ifelse(tsProbs > .5, 1, 0)
+# Confusion matrix compares the predicted labels from our test set
+# to positive outcomes whilst providing useful metrics such as 
+# precision and recall. As our data set is imbalanced recall is
+# particularly relevant.
+confMatrix <- confusionMatrix(factor(tsLabels), factor(testSet$y), positive = "1")
+confMatrix
+```
+
+Here I initially set the threshold for logistic regression to be 0.5
+which turned out to be too strict of a condition as the model predicted
+no positive results. Even halving the threshold did not make any significant
+difference in detecting rare side effects. This highlights the limitations
+of logistic regression on imbalanced data sets and demonstrates the need
+to consider alternative methods.
+
+# Conclusion
+
+This exercise taught me the foundations of using statistical and programming
+techniques on simulated data sets and the challenges that come with highly
+imbalanced data. I'm eager to practice with more advanced techniques
+to over come these hurdles and strengthen my understanding of applied
+data analysis.
